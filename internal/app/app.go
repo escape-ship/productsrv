@@ -3,6 +3,10 @@ package app
 import (
 	"log"
 
+	"github.com/joho/godotenv"
+
+	"github.com/escape-ship/productsrv/internal/infra/sqlc/postgresql"
+	"github.com/escape-ship/productsrv/internal/service"
 )
 
 func init() {
@@ -14,13 +18,13 @@ func init() {
 }
 
 type App struct {
-	AccountGRPCServer *service.Server
+	ProductGRPCServer *service.Server
 	Queris            *postgresql.Queries
 }
 
-func New(accountGrpc *service.Server, db *postgresql.Queries) *App {
+func New(productGrpc *service.Server, db *postgresql.Queries) *App {
 	return &App{
-		AccountGRPCServer: accountGrpc,
+		ProductGRPCServer: productGrpc,
 		Queris:            db,
 	}
 }

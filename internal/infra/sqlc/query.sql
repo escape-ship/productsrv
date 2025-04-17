@@ -1,13 +1,14 @@
--- name: GetUserByEmail :one
-SELECT id, email, password_hash
-FROM account.users
-WHERE email = $1;
+-- name: GetProduct :many
+SELECT id, name, categories, price, inventory, imageUrl, created_at, updated_at
+FROM products.product
+WHERE $1 = 0 OR id = $1;
 
--- name: InsertRefreshToken :exec
-INSERT INTO account.refresh_tokens (user_id, token, expires_at)
-VALUES ($1, $2, $3);
+-- name: GetProductByName :one
+SELECT id, name, categories, price, inventory, imageUrl, created_at, updated_at
+FROM products.product
+WHERE name = $1;
 
--- name: InsertUser :one
-INSERT INTO account.users (email, password_hash)
-VALUES ($1, $2)
-RETURNING id;
+-- name: PostProducts :exec
+INSERT INTO products.product (name, categories, price, inventory, imageUrl)
+VALUES ($1, $2, $3, $4, $5);
+

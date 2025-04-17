@@ -1,4 +1,0 @@
-version: v2
-name: buf.build/escape-ship/productsrv
-deps:
-  - buf.build/googleapis/googleapis

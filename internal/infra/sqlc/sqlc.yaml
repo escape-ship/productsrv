@@ -1,6 +1,6 @@
 version: "2"
 sql:
-  - schema: "../../../db/migrations/000001_init_account.up.sql"
+  - schema: "../../../db/migrations/000001_init_product.up.sql"
     queries: "query.sql"
     engine: "postgresql"
     gen:

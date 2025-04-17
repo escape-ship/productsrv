@@ -8,6 +8,7 @@ CREATE TABLE products.product (
     categories VARCHAR(255) NOT NULL,
     price BIGINT NOT NULL,
     inventory INT NOT NULL,
+    imageUrl VARCHAR,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

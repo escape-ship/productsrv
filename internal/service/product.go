@@ -1,16 +1,17 @@
 package service
 
 import (
-
+	"github.com/escape-ship/productsrv/internal/infra/sqlc/postgresql"
+	pb "github.com/escape-ship/productsrv/proto/gen"
 )
 
 type Server struct {
-	pb.AccountServer
-	Queris *postgresql.Queries
+	pb.ProductServiceServer
+	Queries *postgresql.Queries
 }
 
 func New(query *postgresql.Queries) *Server {
 	return &Server{
-		Queris: query,
+		Queries: query,
 	}
 }

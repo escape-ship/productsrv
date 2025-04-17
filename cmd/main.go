@@ -4,15 +4,23 @@ import (
 	"database/sql"
 	"fmt"
 	"net"
-	"productsrv/internal/app"
-	"productsrv/internal/service"
 
+	pb "github.com/escape-ship/productsrv/proto/gen"
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+
+	"github.com/escape-ship/productsrv/internal/app"
+	"github.com/escape-ship/productsrv/internal/infra/sqlc/postgresql"
+	"github.com/escape-ship/productsrv/internal/service"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	_ "github.com/jackc/pgx/v5/stdlib" // pgx 드라이버 등록
 )
 
 func main() {
-	lis, err := net.Listen("tcp", ":9090")
+	lis, err := net.Listen("tcp", ":9091")
 	if err != nil {
 		return
 	}
@@ -39,19 +47,17 @@ func main() {
 	// 	log.Fatal("Migration failed:", err)
 	// }
 	// fmt.Println("Database migrated successfully!")
-
-	// account srv 초기화
 	queries := postgresql.New(db)
-	accountGRPCServer := service.New(queries)
+	ProductGRPCServer := service.New(queries)
 
-	newSrv := app.New(accountGRPCServer, queries)
+	newSrv := app.New(ProductGRPCServer, queries)
 	s := grpc.NewServer()
 
-	pb.RegisterAccountServer(s, newSrv.AccountGRPCServer)
+	pb.RegisterProductServiceServer(s, newSrv.ProductGRPCServer)
 
 	reflection.Register(s)
 
-	fmt.Println("Serving productsrv on http://0.0.0.0:9090")
+	fmt.Println("Serving productsrv on http://0.0.0.0:9091")
 
 	if err := s.Serve(lis); err != nil {
 		return
