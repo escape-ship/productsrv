@@ -6,15 +6,41 @@ package postgresql
 
 import (
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
+type ProductsCategory struct {
+	ID       uuid.UUID     `json:"id"`
+	ParentID uuid.NullUUID `json:"parent_id"`
+	Name     string        `json:"name"`
+}
+
+type ProductsInventory struct {
+	ID              uuid.UUID `json:"id"`
+	ProductID       uuid.UUID `json:"product_id"`
+	ProductOptionID uuid.UUID `json:"product_option_id"`
+	StockQuantity   int32     `json:"stock_quantity"`
+}
+
 type ProductsProduct struct {
-	ID         int64          `json:"id"`
-	Name       string         `json:"name"`
-	Categories string         `json:"categories"`
-	Price      int64          `json:"price"`
-	Inventory  int32          `json:"inventory"`
-	Imageurl   sql.NullString `json:"imageurl"`
-	CreatedAt  sql.NullTime   `json:"created_at"`
-	UpdatedAt  sql.NullTime   `json:"updated_at"`
+	ID        uuid.UUID      `json:"id"`
+	Name      string         `json:"name"`
+	Price     int64          `json:"price"`
+	ImageUrl  sql.NullString `json:"image_url"`
+	CreatedAt sql.NullTime   `json:"created_at"`
+	UpdatedAt sql.NullTime   `json:"updated_at"`
+}
+
+type ProductsProductOption struct {
+	ID        uuid.UUID `json:"id"`
+	ProductID uuid.UUID `json:"product_id"`
+	Option    string    `json:"option"`
+	Value     string    `json:"value"`
+}
+
+type ProductsProductsCategoriesRelation struct {
+	ID         uuid.UUID `json:"id"`
+	ProductID  uuid.UUID `json:"product_id"`
+	CategoryID uuid.UUID `json:"category_id"`
 }

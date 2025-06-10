@@ -8,32 +8,30 @@ package postgresql
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
-const getProduct = `-- name: GetProduct :many
-SELECT id, name, categories, price, inventory, imageUrl, created_at, updated_at
-FROM products.product
-WHERE $1 = 0 OR id = $1
+const getInventoriesByProductID = `-- name: GetInventoriesByProductID :many
+SELECT id, product_id, product_option_id, stock_quantity
+FROM products.inventories
+WHERE product_id = $1
 `
 
-func (q *Queries) GetProduct(ctx context.Context, dollar_1 interface{}) ([]ProductsProduct, error) {
-	rows, err := q.db.QueryContext(ctx, getProduct, dollar_1)
+func (q *Queries) GetInventoriesByProductID(ctx context.Context, productID uuid.UUID) ([]ProductsInventory, error) {
+	rows, err := q.db.QueryContext(ctx, getInventoriesByProductID, productID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ProductsProduct
+	var items []ProductsInventory
 	for rows.Next() {
-		var i ProductsProduct
+		var i ProductsInventory
 		if err := rows.Scan(
 			&i.ID,
-			&i.Name,
-			&i.Categories,
-			&i.Price,
-			&i.Inventory,
-			&i.Imageurl,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.ProductID,
+			&i.ProductOptionID,
+			&i.StockQuantity,
 		); err != nil {
 			return nil, err
 		}
@@ -49,47 +47,116 @@ func (q *Queries) GetProduct(ctx context.Context, dollar_1 interface{}) ([]Produ
 }
 
 const getProductByName = `-- name: GetProductByName :one
-SELECT id, name, categories, price, inventory, imageUrl, created_at, updated_at
-FROM products.product
-WHERE name = $1
+SELECT p.id, p.name, p.price, p.image_url, p.created_at, p.updated_at,
+       COALESCE(json_agg(DISTINCT c.name) FILTER (WHERE c.id IS NOT NULL), '[]') AS categories,
+       COALESCE(SUM(i.stock_quantity), 0) AS inventory
+FROM products.product p
+LEFT JOIN products.products_categories_relations pcr ON p.id = pcr.product_id
+LEFT JOIN products.categories c ON pcr.category_id = c.id
+LEFT JOIN products.inventories i ON p.id = i.product_id
+WHERE p.name = $1
+GROUP BY p.id
 `
 
-func (q *Queries) GetProductByName(ctx context.Context, name string) (ProductsProduct, error) {
+type GetProductByNameRow struct {
+	ID         uuid.UUID      `json:"id"`
+	Name       string         `json:"name"`
+	Price      int64          `json:"price"`
+	ImageUrl   sql.NullString `json:"image_url"`
+	CreatedAt  sql.NullTime   `json:"created_at"`
+	UpdatedAt  sql.NullTime   `json:"updated_at"`
+	Categories interface{}    `json:"categories"`
+	Inventory  interface{}    `json:"inventory"`
+}
+
+func (q *Queries) GetProductByName(ctx context.Context, name string) (GetProductByNameRow, error) {
 	row := q.db.QueryRowContext(ctx, getProductByName, name)
-	var i ProductsProduct
+	var i GetProductByNameRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Categories,
 		&i.Price,
-		&i.Inventory,
-		&i.Imageurl,
+		&i.ImageUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Categories,
+		&i.Inventory,
 	)
 	return i, err
 }
 
+const getProducts = `-- name: GetProducts :many
+SELECT p.id, p.name, p.price, p.image_url, p.created_at, p.updated_at,
+       COALESCE(json_agg(DISTINCT c.name) FILTER (WHERE c.id IS NOT NULL), '[]') AS categories,
+       COALESCE(SUM(i.stock_quantity), 0) AS inventory
+FROM products.product p
+LEFT JOIN products.products_categories_relations pcr ON p.id = pcr.product_id
+LEFT JOIN products.categories c ON pcr.category_id = c.id
+LEFT JOIN products.inventories i ON p.id = i.product_id
+GROUP BY p.id
+`
+
+type GetProductsRow struct {
+	ID         uuid.UUID      `json:"id"`
+	Name       string         `json:"name"`
+	Price      int64          `json:"price"`
+	ImageUrl   sql.NullString `json:"image_url"`
+	CreatedAt  sql.NullTime   `json:"created_at"`
+	UpdatedAt  sql.NullTime   `json:"updated_at"`
+	Categories interface{}    `json:"categories"`
+	Inventory  interface{}    `json:"inventory"`
+}
+
+func (q *Queries) GetProducts(ctx context.Context) ([]GetProductsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getProducts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProductsRow
+	for rows.Next() {
+		var i GetProductsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Price,
+			&i.ImageUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Categories,
+			&i.Inventory,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const postProducts = `-- name: PostProducts :exec
-INSERT INTO products.product (name, categories, price, inventory, imageUrl)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO products.product (id, name, price, image_url)
+VALUES ($1, $2, $3, $4)
 `
 
 type PostProductsParams struct {
-	Name       string         `json:"name"`
-	Categories string         `json:"categories"`
-	Price      int64          `json:"price"`
-	Inventory  int32          `json:"inventory"`
-	Imageurl   sql.NullString `json:"imageurl"`
+	ID       uuid.UUID      `json:"id"`
+	Name     string         `json:"name"`
+	Price    int64          `json:"price"`
+	ImageUrl sql.NullString `json:"image_url"`
 }
 
 func (q *Queries) PostProducts(ctx context.Context, arg PostProductsParams) error {
 	_, err := q.db.ExecContext(ctx, postProducts,
+		arg.ID,
 		arg.Name,
-		arg.Categories,
 		arg.Price,
-		arg.Inventory,
-		arg.Imageurl,
+		arg.ImageUrl,
 	)
 	return err
 }

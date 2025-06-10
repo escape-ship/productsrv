@@ -3,39 +3,88 @@ package service
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"encoding/json"
 
 	"github.com/escape-ship/productsrv/internal/infra/sqlc/postgresql"
 	pb "github.com/escape-ship/productsrv/proto/gen"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (s *Server) GetProducts(ctx context.Context, in *pb.ProductsRequest) (*pb.ProductsResponse, error) {
+func uuidToString(id uuid.UUID) string {
+	return id.String()
+}
 
-	products, err := s.Queries.GetProduct(ctx, in.Id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, status.Errorf(codes.NotFound, "user not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to get user: %v", err)
+func nullTimeToString(t sql.NullTime) string {
+	if t.Valid {
+		return t.Time.Format("2006-01-02T15:04:05")
 	}
-	rep := []*pb.Product{}
+	return ""
+}
+
+func parseCategories(raw interface{}) []*pb.Category {
+	cats := []*pb.Category{}
+	switch v := raw.(type) {
+	case []byte:
+		var arr []string
+		if err := json.Unmarshal(v, &arr); err == nil {
+			for _, name := range arr {
+				cats = append(cats, &pb.Category{Name: name})
+			}
+		}
+	case []string:
+		for _, name := range v {
+			cats = append(cats, &pb.Category{Name: name})
+		}
+	}
+	return cats
+}
+
+func (s *Server) GetProducts(ctx context.Context, in *pb.GetProductsRequest) (*pb.GetProductsResponse, error) {
+	products, err := s.Queries.GetProducts(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get products: %v", err)
+	}
+	resp := make([]*pb.Product, 0, len(products))
 	for _, product := range products {
-		rep = append(rep, &pb.Product{
-			Id:         uint64(product.ID),
+		cats := parseCategories(product.Categories)
+		inv, _ := product.Inventory.(int64)
+		resp = append(resp, &pb.Product{
+			Id:         uuidToString(product.ID),
 			Name:       product.Name,
-			Categories: product.Categories,
-			Price:      float64(product.Price),
-			Inventory:  product.Inventory,
-			ImageUrl:   product.Imageurl.String,
+			Categories: cats,
+			Price:      product.Price,
+			Inventory:  int32(inv),
+			ImageUrl:   product.ImageUrl.String,
+			CreatedAt:  nullTimeToString(product.CreatedAt),
+			UpdatedAt:  nullTimeToString(product.UpdatedAt),
 		})
 	}
-	result := pb.ProductsResponse{
-		Products: rep,
-	}
+	return &pb.GetProductsResponse{Products: resp}, nil
+}
 
-	return &result, nil
+func (s *Server) GetProductByName(ctx context.Context, in *pb.GetProductByNameRequest) (*pb.GetProductByNameResponse, error) {
+	product, err := s.Queries.GetProductByName(ctx, in.Name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, status.Errorf(codes.NotFound, "product not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get product: %v", err)
+	}
+	cats := parseCategories(product.Categories)
+	inv, _ := product.Inventory.(int64)
+	resp := &pb.Product{
+		Id:         uuidToString(product.ID),
+		Name:       product.Name,
+		Categories: cats,
+		Price:      product.Price,
+		Inventory:  int32(inv),
+		ImageUrl:   product.ImageUrl.String,
+		CreatedAt:  nullTimeToString(product.CreatedAt),
+		UpdatedAt:  nullTimeToString(product.UpdatedAt),
+	}
+	return &pb.GetProductByNameResponse{Product: resp}, nil
 }
 
 func (s *Server) PostProducts(ctx context.Context, in *pb.PostProductRequest) (*pb.PostProductResponse, error) {
@@ -46,41 +95,41 @@ func (s *Server) PostProducts(ctx context.Context, in *pb.PostProductRequest) (*
 	if err != sql.ErrNoRows {
 		return nil, status.Errorf(codes.Internal, "failed to check name: %v", err)
 	}
-
-	Imageurl := sql.NullString{
-		String: in.ImageUrl,
-		Valid:  in.ImageUrl != "",
+	id, err := uuid.Parse(in.Id)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid uuid: %v", err)
 	}
+	imageUrl := sql.NullString{String: in.ImageUrl, Valid: in.ImageUrl != ""}
 	err = s.Queries.PostProducts(ctx, postgresql.PostProductsParams{
-		Name:       in.Name,
-		Categories: in.Categories,
-		Price:      int64(in.Price),
-		Inventory:  in.Inventory,
-		Imageurl:   Imageurl,
+		ID:       id,
+		Name:     in.Name,
+		Price:    in.Price,
+		ImageUrl: imageUrl,
 	})
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to register user: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to register product: %v", err)
 	}
-
-	return &pb.PostProductResponse{
-		Message: fmt.Sprintf("post product successful"),
-	}, nil
+	// 카테고리 관계 테이블에 추가 필요 (구현 필요시 추가)
+	return &pb.PostProductResponse{Message: "post product successful"}, nil
 }
 
-func (s *Server) GetProductInventory(ctx context.Context, in *pb.ProductInventoryRequest) (*pb.ProductInventoryResponse, error) {
-	products, err := s.Queries.GetProduct(ctx, in.Id)
+func (s *Server) GetInventoriesByProductID(ctx context.Context, in *pb.GetInventoriesByProductIDRequest) (*pb.GetInventoriesByProductIDResponse, error) {
+	pid, err := uuid.Parse(in.ProductId)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get product: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid uuid: %v", err)
 	}
-	var inventory int32 = 0
-	var id uint64 = 0
-	for _, product := range products {
-		inventory = product.Inventory
-		id = uint64(product.ID)
+	inventories, err := s.Queries.GetInventoriesByProductID(ctx, pid)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get inventories: %v", err)
 	}
-
-	return &pb.ProductInventoryResponse{
-		Id:        id,
-		Inventory: int32(inventory),
-	}, nil
+	resp := make([]*pb.Inventory, 0, len(inventories))
+	for _, inv := range inventories {
+		resp = append(resp, &pb.Inventory{
+			Id:              uuidToString(inv.ID),
+			ProductId:       uuidToString(inv.ProductID),
+			ProductOptionId: uuidToString(inv.ProductOptionID),
+			StockQuantity:   int32(inv.StockQuantity),
+		})
+	}
+	return &pb.GetInventoriesByProductIDResponse{Inventories: resp}, nil
 }
