@@ -6,9 +6,6 @@ import (
 	"net"
 
 	pb "github.com/escape-ship/productsrv/proto/gen"
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/golang-migrate/migrate/v4/database/mysql"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"github.com/escape-ship/productsrv/internal/app"
 	"github.com/escape-ship/productsrv/internal/infra/sqlc/postgresql"
@@ -28,7 +25,7 @@ func main() {
 	// app.LoadEnv()
 
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		"testuser", "testpasswd", "0.0.0.0", "5432", "escape")
+		"testuser", "testpassword", "0.0.0.0", "5432", "escape")
 
 	fmt.Println("Connecting to DB:", dsn)
 

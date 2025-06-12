@@ -13,9 +13,9 @@ message Category {
 
 // 상품 정보
 message Product {
-    string id = 1; // UUID로 변경
+    string id = 1;
     string name = 2;
-    repeated Category categories = 3; // 카테고리 배열로 변경
+    repeated Category categories = 3;
     int64 price = 4;
     int32 inventory = 5;
     string image_url = 6;
@@ -41,11 +41,10 @@ message GetProductByNameResponse {
 
 // 상품 추가 요청
 message PostProductRequest {
-    string id = 1;
-    string name = 2;
-    repeated string categories = 3;
-    int64 price = 4;
-    string image_url = 5;
+    string name = 1;
+    repeated string categories = 2;
+    int64 price = 3;
+    string image_url = 4;
 }
 
 message PostProductResponse {

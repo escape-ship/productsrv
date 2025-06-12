@@ -95,13 +95,11 @@ func (s *Server) PostProducts(ctx context.Context, in *pb.PostProductRequest) (*
 	if err != sql.ErrNoRows {
 		return nil, status.Errorf(codes.Internal, "failed to check name: %v", err)
 	}
-	id, err := uuid.Parse(in.Id)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid uuid: %v", err)
-	}
+
+	id := uuid.New() // 여기서 id 생성
 	imageUrl := sql.NullString{String: in.ImageUrl, Valid: in.ImageUrl != ""}
 	err = s.Queries.PostProducts(ctx, postgresql.PostProductsParams{
-		ID:       id,
+		ID:       id, // 생성한 id 사용
 		Name:     in.Name,
 		Price:    in.Price,
 		ImageUrl: imageUrl,

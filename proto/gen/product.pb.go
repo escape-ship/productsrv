@@ -71,9 +71,9 @@ func (x *Category) GetName() string {
 // 상품 정보
 type Product struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // UUID로 변경
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Categories    []*Category            `protobuf:"bytes,3,rep,name=categories,proto3" json:"categories,omitempty"` // 카테고리 배열로 변경
+	Categories    []*Category            `protobuf:"bytes,3,rep,name=categories,proto3" json:"categories,omitempty"`
 	Price         int64                  `protobuf:"varint,4,opt,name=price,proto3" json:"price,omitempty"`
 	Inventory     int32                  `protobuf:"varint,5,opt,name=inventory,proto3" json:"inventory,omitempty"`
 	ImageUrl      string                 `protobuf:"bytes,6,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
@@ -342,11 +342,10 @@ func (x *GetProductByNameResponse) GetProduct() *Product {
 // 상품 추가 요청
 type PostProductRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Categories    []string               `protobuf:"bytes,3,rep,name=categories,proto3" json:"categories,omitempty"`
-	Price         int64                  `protobuf:"varint,4,opt,name=price,proto3" json:"price,omitempty"`
-	ImageUrl      string                 `protobuf:"bytes,5,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Categories    []string               `protobuf:"bytes,2,rep,name=categories,proto3" json:"categories,omitempty"`
+	Price         int64                  `protobuf:"varint,3,opt,name=price,proto3" json:"price,omitempty"`
+	ImageUrl      string                 `protobuf:"bytes,4,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -379,13 +378,6 @@ func (x *PostProductRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use PostProductRequest.ProtoReflect.Descriptor instead.
 func (*PostProductRequest) Descriptor() ([]byte, []int) {
 	return file_product_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *PostProductRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
 }
 
 func (x *PostProductRequest) GetName() string {
@@ -643,15 +635,14 @@ const file_product_proto_rawDesc = "" +
 	"\x17GetProductByNameRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"^\n" +
 	"\x18GetProductByNameResponse\x12B\n" +
-	"\aproduct\x18\x01 \x01(\v2(.go.escape.ship.proto.productapi.ProductR\aproduct\"\x8b\x01\n" +
-	"\x12PostProductRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1e\n" +
+	"\aproduct\x18\x01 \x01(\v2(.go.escape.ship.proto.productapi.ProductR\aproduct\"{\n" +
+	"\x12PostProductRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1e\n" +
 	"\n" +
-	"categories\x18\x03 \x03(\tR\n" +
+	"categories\x18\x02 \x03(\tR\n" +
 	"categories\x12\x14\n" +
-	"\x05price\x18\x04 \x01(\x03R\x05price\x12\x1b\n" +
-	"\timage_url\x18\x05 \x01(\tR\bimageUrl\"/\n" +
+	"\x05price\x18\x03 \x01(\x03R\x05price\x12\x1b\n" +
+	"\timage_url\x18\x04 \x01(\tR\bimageUrl\"/\n" +
 	"\x13PostProductResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"A\n" +
 	" GetInventoriesByProductIDRequest\x12\x1d\n" +
