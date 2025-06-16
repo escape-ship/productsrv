@@ -10,7 +10,19 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
+
+const decrementStockQuantities = `-- name: DecrementStockQuantities :exec
+UPDATE products.inventories
+SET stock_quantity = stock_quantity - 1
+WHERE id = ANY($1::uuid[])
+`
+
+func (q *Queries) DecrementStockQuantities(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, decrementStockQuantities, pq.Array(dollar_1))
+	return err
+}
 
 const getInventoriesByProductID = `-- name: GetInventoriesByProductID :many
 SELECT id, product_id, product_option_id, stock_quantity
@@ -44,6 +56,24 @@ func (q *Queries) GetInventoriesByProductID(ctx context.Context, productID uuid.
 		return nil, err
 	}
 	return items, nil
+}
+
+const getInventoryByProductID = `-- name: GetInventoryByProductID :one
+SELECT product_id, stock_quantity
+FROM products.inventories
+WHERE product_id = $1
+`
+
+type GetInventoryByProductIDRow struct {
+	ProductID     uuid.UUID `json:"product_id"`
+	StockQuantity int32     `json:"stock_quantity"`
+}
+
+func (q *Queries) GetInventoryByProductID(ctx context.Context, productID uuid.UUID) (GetInventoryByProductIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getInventoryByProductID, productID)
+	var i GetInventoryByProductIDRow
+	err := row.Scan(&i.ProductID, &i.StockQuantity)
+	return i, err
 }
 
 const getProductByName = `-- name: GetProductByName :one

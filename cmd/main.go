@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/escape-ship/productsrv/pkg/kafka"
 	pb "github.com/escape-ship/productsrv/proto/gen"
 
 	"github.com/escape-ship/productsrv/internal/app"
@@ -36,18 +37,16 @@ func main() {
 	}
 	defer db.Close()
 
-	// m, err := migrate.New("file://db/migrations", dsn)
-	// if err != nil {
-	// 	log.Fatal("Migration init failed:", err)
-	// }
-	// if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-	// 	log.Fatal("Migration failed:", err)
-	// }
-	// fmt.Println("Database migrated successfully!")
 	queries := postgresql.New(db)
 	ProductGRPCServer := service.New(queries)
 
-	newSrv := app.New(ProductGRPCServer, queries)
+	brokers := []string{"localhost:9092"}
+	topic := "payments"
+	groupID := "order-group"
+	engine := kafka.NewEngine(brokers, topic, groupID)
+	consumer := engine.Consumer()
+
+	newSrv := app.New(ProductGRPCServer, queries, engine, consumer)
 	s := grpc.NewServer()
 
 	pb.RegisterProductServiceServer(s, newSrv.ProductGRPCServer)

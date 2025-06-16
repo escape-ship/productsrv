@@ -28,3 +28,13 @@ SELECT id, product_id, product_option_id, stock_quantity
 FROM products.inventories
 WHERE product_id = $1;
 
+-- name: GetInventoryByProductID :one
+SELECT product_id, stock_quantity
+FROM products.inventories
+WHERE product_id = $1;
+
+-- name: DecrementStockQuantities :exec
+UPDATE products.inventories
+SET stock_quantity = stock_quantity - 1
+WHERE id = ANY($1::uuid[]);
+

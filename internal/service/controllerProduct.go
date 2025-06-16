@@ -131,3 +131,15 @@ func (s *Server) GetInventoriesByProductID(ctx context.Context, in *pb.GetInvent
 	}
 	return &pb.GetInventoriesByProductIDResponse{Inventories: resp}, nil
 }
+
+func (s *Server) DecrementStockQuantities(ctx context.Context, idsByte []byte) error {
+	var ids []uuid.UUID
+	if err := json.Unmarshal(idsByte, &ids); err != nil {
+		return status.Errorf(codes.InvalidArgument, "failed to parse ids: %v", err)
+	}
+	err := s.Queries.DecrementStockQuantities(ctx, ids)
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to decrement stock quantities: %v", err)
+	}
+	return nil
+}
