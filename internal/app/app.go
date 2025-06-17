@@ -3,44 +3,45 @@ package app
 import (
 	"context"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/joho/godotenv"
-
-	"github.com/escape-ship/productsrv/internal/infra/sqlc/postgresql"
 	"github.com/escape-ship/productsrv/internal/service"
 	"github.com/escape-ship/productsrv/pkg/kafka"
+	"github.com/escape-ship/productsrv/pkg/postgres"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+
+	pb "github.com/escape-ship/productsrv/proto/gen"
 )
 
-func init() {
-	// 환경 변수 로드
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Println("Warning: No .env file found")
-	}
-}
-
 type App struct {
-	ProductGRPCServer *service.Server
-	Queris            *postgresql.Queries
-	KafkaEngine       kafka.Engine
-	KafkaConsumer     kafka.Consumer
-	ProductService    *service.Server
+	KafkaEngine    kafka.Engine
+	KafkaConsumer  kafka.Consumer
+	pg             postgres.DBEngine
+	ProductService *service.ProductService
+	Listener       net.Listener
 }
 
-func New(productGrpc *service.Server, db *postgresql.Queries, kafkaEngine kafka.Engine, kafkaConsumer kafka.Consumer) *App {
+func New(pg postgres.DBEngine, listener net.Listener, kafkaEngine kafka.Engine, kafkaConsumer kafka.Consumer) *App {
 	return &App{
-		ProductGRPCServer: productGrpc,
-		Queris:            db,
-		KafkaEngine:       kafkaEngine,
-		KafkaConsumer:     kafkaConsumer,
+		KafkaEngine:    kafkaEngine,
+		KafkaConsumer:  kafkaConsumer,
+		pg:             pg,
+		Listener:       listener,
+		ProductService: service.NewProductService(pg, kafkaEngine),
 	}
 }
 
 // App 실행: gRPC 서버와 Kafka consumer를 모두 실행
 func (a *App) Run() {
+	grpcServer := grpc.NewServer()
+	// gRPC 서비스 등록
+	pb.RegisterProductServiceServer(grpcServer, service.NewProductService(a.pg, a.KafkaEngine))
+
+	reflection.Register(grpcServer)
 	// Kafka 메시지 핸들러
 	handler := func(key, value []byte) {
 		log.Printf("Kafka message received: key=%s, value=%s", string(key), string(value))
@@ -49,7 +50,7 @@ func (a *App) Run() {
 		case "inventory-discount":
 			// 인벤토리 감소 함수 호출
 			log.Println("Processing kakao-approve message")
-			err := a.ProductGRPCServer.DecrementStockQuantities(context.Background(), value)
+			err := a.ProductService.DecrementStockQuantities(context.Background(), value)
 			if err != nil {
 				log.Printf("Error processing inventory discount: %v", err)
 			}
@@ -57,6 +58,11 @@ func (a *App) Run() {
 		}
 	}
 	go RunKafkaConsumer(a.KafkaConsumer, handler)
+
+	log.Println("gRPC server listening on :9093")
+	if err := grpcServer.Serve(a.Listener); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }
 
 // Kafka consumer를 실행하고 메시지 처리 핸들러를 등록하는 함수

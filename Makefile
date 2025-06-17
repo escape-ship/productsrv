@@ -11,8 +11,8 @@ build:
 	@go mod download
 	@$(MAKE) proto_gen
 	@$(MAKE) sqlc_gen
-	@go build -o bin/$(shell basename $(PWD)) ./cmd
-
+	@${MAKE} build_alone
+	
 build_alone:
 	@go build -tags migrate -o bin/$(shell basename $(PWD)) ./cmd
 

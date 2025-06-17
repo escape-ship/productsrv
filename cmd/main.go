@@ -1,44 +1,40 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
+	"log/slog"
 	"net"
+	"os"
 
+	"github.com/escape-ship/productsrv/config"
 	"github.com/escape-ship/productsrv/pkg/kafka"
-	pb "github.com/escape-ship/productsrv/proto/gen"
+	"github.com/escape-ship/productsrv/pkg/postgres"
 
 	"github.com/escape-ship/productsrv/internal/app"
-	"github.com/escape-ship/productsrv/internal/infra/sqlc/postgresql"
-	"github.com/escape-ship/productsrv/internal/service"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // pgx 드라이버 등록
 )
 
 func main() {
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	lis, err := net.Listen("tcp", ":9091")
 	if err != nil {
 		return
 	}
-	// // 환경변수 읽어오기
-	// app.LoadEnv()
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		"testuser", "testpassword", "0.0.0.0", "5432", "escape")
-
-	fmt.Println("Connecting to DB:", dsn)
-
-	db, err := sql.Open("pgx", dsn)
+	cfg, err := config.New("config.yaml")
 	if err != nil {
-		fmt.Println(err)
-		return
+		logger.Error("App: config load error", "error", err)
+		os.Exit(1)
 	}
-	defer db.Close()
 
-	queries := postgresql.New(db)
-	ProductGRPCServer := service.New(queries)
+	db, err := postgres.New(makeDSN(cfg.Database))
+	if err != nil {
+		logger.Error("App: database connection error", "error", err)
+		os.Exit(1)
+	}
 
 	brokers := []string{"localhost:9092"}
 	topic := "payments"
@@ -46,16 +42,18 @@ func main() {
 	engine := kafka.NewEngine(brokers, topic, groupID)
 	consumer := engine.Consumer()
 
-	newSrv := app.New(ProductGRPCServer, queries, engine, consumer)
-	s := grpc.NewServer()
+	application := app.New(db, lis, engine, consumer)
+	application.Run()
+}
 
-	pb.RegisterProductServiceServer(s, newSrv.ProductGRPCServer)
-
-	reflection.Register(s)
-
-	fmt.Println("Serving productsrv on http://0.0.0.0:9091")
-
-	if err := s.Serve(lis); err != nil {
-		return
-	}
+// config.Database 값 사용
+func makeDSN(db config.Database) postgres.DBConnString {
+	return postgres.DBConnString(
+		fmt.Sprintf(
+			"postgres://%s:%s@%s:%d/%s?sslmode=%s&search_path=%s",
+			db.User, db.Password,
+			db.Host, db.Port,
+			db.DataBaseName, db.SSLMode, db.SchemaName,
+		),
+	)
 }
