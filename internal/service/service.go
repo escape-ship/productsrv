@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	"github.com/escape-ship/productsrv/internal/infra/sqlc/postgresql"
 	"github.com/escape-ship/productsrv/pkg/kafka"
@@ -96,7 +97,7 @@ func (s *ProductService) GetProducts(ctx context.Context, in *pb.GetProductsRequ
 	return &pb.GetProductsResponse{Products: resp}, nil
 }
 
-func (s *ProductService) GetProductByName(ctx context.Context, in *pb.GetProductByNameRequest) (*pb.GetProductByNameResponse, error) {
+func (s *ProductService) GetProductByID(ctx context.Context, in *pb.GetProductByIDRequest) (*pb.GetProductByIDResponse, error) {
 
 	db := s.pg.GetDB()
 	querier := postgresql.New(db)
@@ -112,27 +113,44 @@ func (s *ProductService) GetProductByName(ctx context.Context, in *pb.GetProduct
 			tx.Commit()
 		}
 	}()
+	getId := in.GetId()
 
-	product, err := qtx.GetProductByName(ctx, in.Name)
+	id, err := uuid.Parse(getId)
+	if err != nil {
+		fmt.Println("Invalid UUID:", err)
+		return nil, err
+	}
+	fmt.Printf("GetProductByName ID:%v\n", id)
+	product, err := qtx.GetProductByID(ctx, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, status.Errorf(codes.NotFound, "product not found")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to get product: %v", err)
 	}
-	cats := parseCategories(product.Categories)
-	inv, _ := product.Inventory.(int64)
+	categories, err := qtx.GetCategoriesByProductID(ctx, product.ID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get categories: %v", err)
+	}
+	cats := make([]*pb.Category, 0, len(categories))
+	for _, cat := range categories {
+		cats = append(cats, &pb.Category{
+			Name: cat.Name,
+		})
+	}
+	inv, err := qtx.GetInventoryByProductID(ctx, product.ID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get inventory: %v", err)
+	}
 	resp := &pb.Product{
 		Id:         uuidToString(product.ID),
 		Name:       product.Name,
 		Categories: cats,
 		Price:      product.Price,
-		Inventory:  int32(inv),
+		Inventory:  int32(inv.StockQuantity),
 		ImageUrl:   product.ImageUrl.String,
-		CreatedAt:  nullTimeToString(product.CreatedAt),
-		UpdatedAt:  nullTimeToString(product.UpdatedAt),
 	}
-	return &pb.GetProductByNameResponse{Product: resp}, nil
+	return &pb.GetProductByIDResponse{Product: resp}, nil
 }
 
 func (s *ProductService) PostProducts(ctx context.Context, in *pb.PostProductRequest) (*pb.PostProductResponse, error) {
