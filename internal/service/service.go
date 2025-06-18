@@ -82,13 +82,11 @@ func (s *ProductService) GetProducts(ctx context.Context, in *pb.GetProductsRequ
 	resp := make([]*pb.Product, 0, len(products))
 	for _, product := range products {
 		cats := parseCategories(product.Categories)
-		inv, _ := product.Inventory.(int64)
 		resp = append(resp, &pb.Product{
 			Id:         uuidToString(product.ID),
 			Name:       product.Name,
 			Categories: cats,
 			Price:      product.Price,
-			Inventory:  int32(inv),
 			ImageUrl:   product.ImageUrl.String,
 			CreatedAt:  nullTimeToString(product.CreatedAt),
 			UpdatedAt:  nullTimeToString(product.UpdatedAt),
@@ -138,16 +136,11 @@ func (s *ProductService) GetProductByID(ctx context.Context, in *pb.GetProductBy
 			Name: cat.Name,
 		})
 	}
-	inv, err := qtx.GetInventoryByProductID(ctx, product.ID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get inventory: %v", err)
-	}
 	resp := &pb.Product{
 		Id:         uuidToString(product.ID),
 		Name:       product.Name,
 		Categories: cats,
 		Price:      product.Price,
-		Inventory:  int32(inv.StockQuantity),
 		ImageUrl:   product.ImageUrl.String,
 	}
 	return &pb.GetProductByIDResponse{Product: resp}, nil
@@ -192,43 +185,6 @@ func (s *ProductService) PostProducts(ctx context.Context, in *pb.PostProductReq
 	}
 	// 카테고리 관계 테이블에 추가 필요 (구현 필요시 추가)
 	return &pb.PostProductResponse{Message: "post product successful"}, nil
-}
-
-func (s *ProductService) GetInventoriesByProductID(ctx context.Context, in *pb.GetInventoriesByProductIDRequest) (*pb.GetInventoriesByProductIDResponse, error) {
-
-	db := s.pg.GetDB()
-	querier := postgresql.New(db)
-
-	tx, err := db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	qtx := querier.WithTx(tx)
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
-	pid, err := uuid.Parse(in.ProductId)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid uuid: %v", err)
-	}
-	inventories, err := qtx.GetInventoriesByProductID(ctx, pid)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get inventories: %v", err)
-	}
-	resp := make([]*pb.Inventory, 0, len(inventories))
-	for _, inv := range inventories {
-		resp = append(resp, &pb.Inventory{
-			Id:              uuidToString(inv.ID),
-			ProductId:       uuidToString(inv.ProductID),
-			ProductOptionId: uuidToString(inv.ProductOptionID),
-			StockQuantity:   int32(inv.StockQuantity),
-		})
-	}
-	return &pb.GetInventoriesByProductIDResponse{Inventories: resp}, nil
 }
 
 func (s *ProductService) DecrementStockQuantities(ctx context.Context, idsByte []byte) error {

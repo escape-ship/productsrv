@@ -75,10 +75,9 @@ type Product struct {
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Categories    []*Category            `protobuf:"bytes,3,rep,name=categories,proto3" json:"categories,omitempty"`
 	Price         int64                  `protobuf:"varint,4,opt,name=price,proto3" json:"price,omitempty"`
-	Inventory     int32                  `protobuf:"varint,5,opt,name=inventory,proto3" json:"inventory,omitempty"`
-	ImageUrl      string                 `protobuf:"bytes,6,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	ImageUrl      string                 `protobuf:"bytes,5,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string                 `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -137,13 +136,6 @@ func (x *Product) GetCategories() []*Category {
 func (x *Product) GetPrice() int64 {
 	if x != nil {
 		return x.Price
-	}
-	return 0
-}
-
-func (x *Product) GetInventory() int32 {
-	if x != nil {
-		return x.Inventory
 	}
 	return 0
 }
@@ -452,183 +444,25 @@ func (x *PostProductResponse) GetMessage() string {
 	return ""
 }
 
-// 인벤토리 조회 요청
-type GetInventoriesByProductIDRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetInventoriesByProductIDRequest) Reset() {
-	*x = GetInventoriesByProductIDRequest{}
-	mi := &file_product_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetInventoriesByProductIDRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetInventoriesByProductIDRequest) ProtoMessage() {}
-
-func (x *GetInventoriesByProductIDRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_product_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetInventoriesByProductIDRequest.ProtoReflect.Descriptor instead.
-func (*GetInventoriesByProductIDRequest) Descriptor() ([]byte, []int) {
-	return file_product_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *GetInventoriesByProductIDRequest) GetProductId() string {
-	if x != nil {
-		return x.ProductId
-	}
-	return ""
-}
-
-type Inventory struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ProductId       string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	ProductOptionId string                 `protobuf:"bytes,3,opt,name=product_option_id,json=productOptionId,proto3" json:"product_option_id,omitempty"`
-	StockQuantity   int32                  `protobuf:"varint,4,opt,name=stock_quantity,json=stockQuantity,proto3" json:"stock_quantity,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *Inventory) Reset() {
-	*x = Inventory{}
-	mi := &file_product_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Inventory) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Inventory) ProtoMessage() {}
-
-func (x *Inventory) ProtoReflect() protoreflect.Message {
-	mi := &file_product_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Inventory.ProtoReflect.Descriptor instead.
-func (*Inventory) Descriptor() ([]byte, []int) {
-	return file_product_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *Inventory) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *Inventory) GetProductId() string {
-	if x != nil {
-		return x.ProductId
-	}
-	return ""
-}
-
-func (x *Inventory) GetProductOptionId() string {
-	if x != nil {
-		return x.ProductOptionId
-	}
-	return ""
-}
-
-func (x *Inventory) GetStockQuantity() int32 {
-	if x != nil {
-		return x.StockQuantity
-	}
-	return 0
-}
-
-type GetInventoriesByProductIDResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Inventories   []*Inventory           `protobuf:"bytes,1,rep,name=inventories,proto3" json:"inventories,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetInventoriesByProductIDResponse) Reset() {
-	*x = GetInventoriesByProductIDResponse{}
-	mi := &file_product_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetInventoriesByProductIDResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetInventoriesByProductIDResponse) ProtoMessage() {}
-
-func (x *GetInventoriesByProductIDResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_product_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetInventoriesByProductIDResponse.ProtoReflect.Descriptor instead.
-func (*GetInventoriesByProductIDResponse) Descriptor() ([]byte, []int) {
-	return file_product_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *GetInventoriesByProductIDResponse) GetInventories() []*Inventory {
-	if x != nil {
-		return x.Inventories
-	}
-	return nil
-}
-
 var File_product_proto protoreflect.FileDescriptor
 
 const file_product_proto_rawDesc = "" +
 	"\n" +
 	"\rproduct.proto\x12\x1fgo.escape.ship.proto.productapi\x1a\x1cgoogle/api/annotations.proto\x1a\x19google/protobuf/any.proto\"\x1e\n" +
 	"\bCategory\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"\x87\x02\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\xe9\x01\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12I\n" +
 	"\n" +
 	"categories\x18\x03 \x03(\v2).go.escape.ship.proto.productapi.CategoryR\n" +
 	"categories\x12\x14\n" +
-	"\x05price\x18\x04 \x01(\x03R\x05price\x12\x1c\n" +
-	"\tinventory\x18\x05 \x01(\x05R\tinventory\x12\x1b\n" +
-	"\timage_url\x18\x06 \x01(\tR\bimageUrl\x12\x1d\n" +
+	"\x05price\x18\x04 \x01(\x03R\x05price\x12\x1b\n" +
+	"\timage_url\x18\x05 \x01(\tR\bimageUrl\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\tR\tupdatedAt\"\x14\n" +
+	"updated_at\x18\a \x01(\tR\tupdatedAt\"\x14\n" +
 	"\x12GetProductsRequest\"[\n" +
 	"\x13GetProductsResponse\x12D\n" +
 	"\bproducts\x18\x01 \x03(\v2(.go.escape.ship.proto.productapi.ProductR\bproducts\"'\n" +
@@ -644,23 +478,11 @@ const file_product_proto_rawDesc = "" +
 	"\x05price\x18\x03 \x01(\x03R\x05price\x12\x1b\n" +
 	"\timage_url\x18\x04 \x01(\tR\bimageUrl\"/\n" +
 	"\x13PostProductResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"A\n" +
-	" GetInventoriesByProductIDRequest\x12\x1d\n" +
-	"\n" +
-	"product_id\x18\x01 \x01(\tR\tproductId\"\x8d\x01\n" +
-	"\tInventory\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
-	"\n" +
-	"product_id\x18\x02 \x01(\tR\tproductId\x12*\n" +
-	"\x11product_option_id\x18\x03 \x01(\tR\x0fproductOptionId\x12%\n" +
-	"\x0estock_quantity\x18\x04 \x01(\x05R\rstockQuantity\"q\n" +
-	"!GetInventoriesByProductIDResponse\x12L\n" +
-	"\vinventories\x18\x01 \x03(\v2*.go.escape.ship.proto.productapi.InventoryR\vinventories2\x9d\x05\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\xcc\x03\n" +
 	"\x0eProductService\x12\x8b\x01\n" +
 	"\vGetProducts\x123.go.escape.ship.proto.productapi.GetProductsRequest\x1a4.go.escape.ship.proto.productapi.GetProductsResponse\"\x11\x82\xd3\xe4\x93\x02\v\x12\t/products\x12\x99\x01\n" +
 	"\x0eGetProductByID\x126.go.escape.ship.proto.productapi.GetProductByIDRequest\x1a7.go.escape.ship.proto.productapi.GetProductByIDResponse\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/products/{id}\x12\x8f\x01\n" +
-	"\fPostProducts\x123.go.escape.ship.proto.productapi.PostProductRequest\x1a4.go.escape.ship.proto.productapi.PostProductResponse\"\x14\x82\xd3\xe4\x93\x02\x0e:\x01*\"\t/products\x12\xce\x01\n" +
-	"\x19GetInventoriesByProductID\x12A.go.escape.ship.proto.productapi.GetInventoriesByProductIDRequest\x1aB.go.escape.ship.proto.productapi.GetInventoriesByProductIDResponse\"*\x82\xd3\xe4\x93\x02$\x12\"/products/{product_id}/inventoriesB-Z+github.com/escape-ship/productsrv/proto/genb\x06proto3"
+	"\fPostProducts\x123.go.escape.ship.proto.productapi.PostProductRequest\x1a4.go.escape.ship.proto.productapi.PostProductResponse\"\x14\x82\xd3\xe4\x93\x02\x0e:\x01*\"\t/productsB-Z+github.com/escape-ship/productsrv/proto/genb\x06proto3"
 
 var (
 	file_product_proto_rawDescOnce sync.Once
@@ -674,38 +496,32 @@ func file_product_proto_rawDescGZIP() []byte {
 	return file_product_proto_rawDescData
 }
 
-var file_product_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_product_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_product_proto_goTypes = []any{
-	(*Category)(nil),                          // 0: go.escape.ship.proto.productapi.Category
-	(*Product)(nil),                           // 1: go.escape.ship.proto.productapi.Product
-	(*GetProductsRequest)(nil),                // 2: go.escape.ship.proto.productapi.GetProductsRequest
-	(*GetProductsResponse)(nil),               // 3: go.escape.ship.proto.productapi.GetProductsResponse
-	(*GetProductByIDRequest)(nil),             // 4: go.escape.ship.proto.productapi.GetProductByIDRequest
-	(*GetProductByIDResponse)(nil),            // 5: go.escape.ship.proto.productapi.GetProductByIDResponse
-	(*PostProductRequest)(nil),                // 6: go.escape.ship.proto.productapi.PostProductRequest
-	(*PostProductResponse)(nil),               // 7: go.escape.ship.proto.productapi.PostProductResponse
-	(*GetInventoriesByProductIDRequest)(nil),  // 8: go.escape.ship.proto.productapi.GetInventoriesByProductIDRequest
-	(*Inventory)(nil),                         // 9: go.escape.ship.proto.productapi.Inventory
-	(*GetInventoriesByProductIDResponse)(nil), // 10: go.escape.ship.proto.productapi.GetInventoriesByProductIDResponse
+	(*Category)(nil),               // 0: go.escape.ship.proto.productapi.Category
+	(*Product)(nil),                // 1: go.escape.ship.proto.productapi.Product
+	(*GetProductsRequest)(nil),     // 2: go.escape.ship.proto.productapi.GetProductsRequest
+	(*GetProductsResponse)(nil),    // 3: go.escape.ship.proto.productapi.GetProductsResponse
+	(*GetProductByIDRequest)(nil),  // 4: go.escape.ship.proto.productapi.GetProductByIDRequest
+	(*GetProductByIDResponse)(nil), // 5: go.escape.ship.proto.productapi.GetProductByIDResponse
+	(*PostProductRequest)(nil),     // 6: go.escape.ship.proto.productapi.PostProductRequest
+	(*PostProductResponse)(nil),    // 7: go.escape.ship.proto.productapi.PostProductResponse
 }
 var file_product_proto_depIdxs = []int32{
-	0,  // 0: go.escape.ship.proto.productapi.Product.categories:type_name -> go.escape.ship.proto.productapi.Category
-	1,  // 1: go.escape.ship.proto.productapi.GetProductsResponse.products:type_name -> go.escape.ship.proto.productapi.Product
-	1,  // 2: go.escape.ship.proto.productapi.GetProductByIDResponse.product:type_name -> go.escape.ship.proto.productapi.Product
-	9,  // 3: go.escape.ship.proto.productapi.GetInventoriesByProductIDResponse.inventories:type_name -> go.escape.ship.proto.productapi.Inventory
-	2,  // 4: go.escape.ship.proto.productapi.ProductService.GetProducts:input_type -> go.escape.ship.proto.productapi.GetProductsRequest
-	4,  // 5: go.escape.ship.proto.productapi.ProductService.GetProductByID:input_type -> go.escape.ship.proto.productapi.GetProductByIDRequest
-	6,  // 6: go.escape.ship.proto.productapi.ProductService.PostProducts:input_type -> go.escape.ship.proto.productapi.PostProductRequest
-	8,  // 7: go.escape.ship.proto.productapi.ProductService.GetInventoriesByProductID:input_type -> go.escape.ship.proto.productapi.GetInventoriesByProductIDRequest
-	3,  // 8: go.escape.ship.proto.productapi.ProductService.GetProducts:output_type -> go.escape.ship.proto.productapi.GetProductsResponse
-	5,  // 9: go.escape.ship.proto.productapi.ProductService.GetProductByID:output_type -> go.escape.ship.proto.productapi.GetProductByIDResponse
-	7,  // 10: go.escape.ship.proto.productapi.ProductService.PostProducts:output_type -> go.escape.ship.proto.productapi.PostProductResponse
-	10, // 11: go.escape.ship.proto.productapi.ProductService.GetInventoriesByProductID:output_type -> go.escape.ship.proto.productapi.GetInventoriesByProductIDResponse
-	8,  // [8:12] is the sub-list for method output_type
-	4,  // [4:8] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	0, // 0: go.escape.ship.proto.productapi.Product.categories:type_name -> go.escape.ship.proto.productapi.Category
+	1, // 1: go.escape.ship.proto.productapi.GetProductsResponse.products:type_name -> go.escape.ship.proto.productapi.Product
+	1, // 2: go.escape.ship.proto.productapi.GetProductByIDResponse.product:type_name -> go.escape.ship.proto.productapi.Product
+	2, // 3: go.escape.ship.proto.productapi.ProductService.GetProducts:input_type -> go.escape.ship.proto.productapi.GetProductsRequest
+	4, // 4: go.escape.ship.proto.productapi.ProductService.GetProductByID:input_type -> go.escape.ship.proto.productapi.GetProductByIDRequest
+	6, // 5: go.escape.ship.proto.productapi.ProductService.PostProducts:input_type -> go.escape.ship.proto.productapi.PostProductRequest
+	3, // 6: go.escape.ship.proto.productapi.ProductService.GetProducts:output_type -> go.escape.ship.proto.productapi.GetProductsResponse
+	5, // 7: go.escape.ship.proto.productapi.ProductService.GetProductByID:output_type -> go.escape.ship.proto.productapi.GetProductByIDResponse
+	7, // 8: go.escape.ship.proto.productapi.ProductService.PostProducts:output_type -> go.escape.ship.proto.productapi.PostProductResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_product_proto_init() }
@@ -719,7 +535,7 @@ func file_product_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_product_proto_rawDesc), len(file_product_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

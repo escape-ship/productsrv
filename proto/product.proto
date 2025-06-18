@@ -17,10 +17,9 @@ message Product {
     string name = 2;
     repeated Category categories = 3;
     int64 price = 4;
-    int32 inventory = 5;
-    string image_url = 6;
-    string created_at = 7;
-    string updated_at = 8;
+    string image_url = 5;
+    string created_at = 6;
+    string updated_at = 7;
 }
 
 // 전체 상품 목록 요청 (필터 없음)
@@ -50,23 +49,6 @@ message PostProductRequest {
 message PostProductResponse {
     string message = 1;
 }
-
-// 인벤토리 조회 요청
-message GetInventoriesByProductIDRequest {
-    string product_id = 1;
-}
-
-message Inventory {
-    string id = 1;
-    string product_id = 2;
-    string product_option_id = 3;
-    int32 stock_quantity = 4;
-}
-
-message GetInventoriesByProductIDResponse {
-    repeated Inventory inventories = 1;
-}
-
 service ProductService {
     rpc GetProducts(GetProductsRequest) returns (GetProductsResponse) {
         option (google.api.http) = {
@@ -82,11 +64,6 @@ service ProductService {
         option (google.api.http) = {
             post: "/products"
             body: "*"
-        };
-    }
-    rpc GetInventoriesByProductID(GetInventoriesByProductIDRequest) returns (GetInventoriesByProductIDResponse) {
-        option (google.api.http) = {
-            get: "/products/{product_id}/inventories"
         };
     }
 }
