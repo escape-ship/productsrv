@@ -21,6 +21,7 @@ func main() {
 
 	lis, err := net.Listen("tcp", ":9091")
 	if err != nil {
+		logger.Error(err.Error())
 		return
 	}
 

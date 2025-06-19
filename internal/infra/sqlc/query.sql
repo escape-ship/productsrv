@@ -1,57 +1,64 @@
 -- name: GetProducts :many
-SELECT p.id, p.name, p.price, p.image_url, p.created_at, p.updated_at,
-       COALESCE(json_agg(DISTINCT c.name) FILTER (WHERE c.id IS NOT NULL), '[]') AS categories,
-       COALESCE(SUM(i.stock_quantity), 0) AS inventory
-FROM products.product p
-LEFT JOIN products.products_categories_relations pcr ON p.id = pcr.product_id
-LEFT JOIN products.categories c ON pcr.category_id = c.id
-LEFT JOIN products.inventories i ON p.id = i.product_id
-GROUP BY p.id;
+SELECT id, name, price, image_url, created_at, updated_at
+FROM products.product;
 
 -- name: GetProductByName :one
-SELECT p.id, p.name, p.price, p.image_url, p.created_at, p.updated_at,
-       COALESCE(json_agg(DISTINCT c.name) FILTER (WHERE c.id IS NOT NULL), '[]') AS categories,
-       COALESCE(SUM(i.stock_quantity), 0) AS inventory
-FROM products.product p
-LEFT JOIN products.products_categories_relations pcr ON p.id = pcr.product_id
-LEFT JOIN products.categories c ON pcr.category_id = c.id
-LEFT JOIN products.inventories i ON p.id = i.product_id
-WHERE p.name = $1
-GROUP BY p.id;
+SELECT id, name, price, image_url, created_at, updated_at
+FROM products.product
+WHERE name = $1;
 
 -- name: GetProductByID :one
-SELECT p.id, p.name, p.price, p.image_url, p.created_at, p.updated_at,
-       COALESCE(json_agg(DISTINCT c.name) FILTER (WHERE c.id IS NOT NULL), '[]') AS categories,
-       COALESCE(SUM(i.stock_quantity), 0) AS inventory
-FROM products.product p
-LEFT JOIN products.products_categories_relations pcr ON p.id = pcr.product_id
-LEFT JOIN products.categories c ON pcr.category_id = c.id
-LEFT JOIN products.inventories i ON p.id = i.product_id
-WHERE p.id = $1
-GROUP BY p.id;
+SELECT id, name, price, image_url, created_at, updated_at
+FROM products.product
+WHERE id = $1;
 
 -- name: PostProducts :exec
 INSERT INTO products.product (id, name, price, image_url)
 VALUES ($1, $2, $3, $4);
 
--- name: GetInventoriesByProductID :many
-SELECT id, product_id, product_option_id, stock_quantity
-FROM products.inventories
-WHERE product_id = $1;
+-- name: GetCategories :many
+SELECT id, name
+FROM products.categories;
 
--- name: GetInventoryByProductID :one
-SELECT product_id, stock_quantity
-FROM products.inventories
-WHERE product_id = $1;
-
--- name: DecrementStockQuantities :exec
-UPDATE products.inventories
-SET stock_quantity = stock_quantity - 1
-WHERE id = ANY($1::uuid[]);
+-- name: GetCategoryByID :one
+SELECT id, name
+FROM products.categories
+WHERE id = $1;
 
 -- name: GetCategoriesByProductID :many
-SELECT c.id, c.name, c.parent_id
+SELECT c.id, c.name
 FROM products.categories c
-JOIN products.products_categories_relations pcr ON c.id = pcr.category_id
-WHERE pcr.product_id = $1;
+JOIN products.product_categories pc ON c.id = pc.category_id
+WHERE pc.product_id = $1;
 
+-- name: HasProductCustomOptionValues :one
+SELECT EXISTS (
+  SELECT 1
+  FROM products.product_option_values
+  WHERE product_id = $1
+) AS has_custom;
+
+-- name: GetProductCustomOptionValues :many
+SELECT
+  o.id AS option_id,
+  o.name AS option_name,
+  ov.id AS value_id,
+  ov.value AS value
+FROM products.product_option_values pov
+JOIN products.option_values ov ON pov.option_value_id = ov.id
+JOIN products.options o ON pov.option_id = o.id
+WHERE pov.product_id = $1
+ORDER BY o.id, ov.id;
+
+-- name: GetProductDefaultOptionValues :many
+SELECT
+  o.id AS option_id,
+  o.name AS option_name,
+  ov.id AS value_id,
+  ov.value AS value
+FROM products.product_categories pc
+JOIN products.category_options co ON pc.category_id = co.category_id
+JOIN products.options o ON co.option_id = o.id
+JOIN products.option_values ov ON ov.option_id = o.id
+WHERE pc.product_id = $1
+ORDER BY o.id, ov.id;

@@ -48,18 +48,13 @@ func (a *App) Run() {
 		// TODO: 메시지에 따라 비즈니스 로직 실행
 		switch string(key) {
 		case "inventory-discount":
-			// 인벤토리 감소 함수 호출
-			log.Println("Processing kakao-approve message")
-			err := a.ProductService.DecrementStockQuantities(context.Background(), value)
-			if err != nil {
-				log.Printf("Error processing inventory discount: %v", err)
-			}
+			// 배송요청 로직이 들어가야됨
 		default:
 		}
 	}
 	go RunKafkaConsumer(a.KafkaConsumer, handler)
 
-	log.Println("gRPC server listening on :9093")
+	log.Println("gRPC server listening on :9091")
 	if err := grpcServer.Serve(a.Listener); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
@@ -68,12 +63,16 @@ func (a *App) Run() {
 // Kafka consumer를 실행하고 메시지 처리 핸들러를 등록하는 함수
 func RunKafkaConsumer(consumer kafka.Consumer, handler func(key, value []byte)) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	go func() {
 		for {
 			key, value, err := consumer.Consume(ctx)
 			if err != nil {
+				// context가 종료됐으면 루프 탈출
+				if ctx.Err() != nil {
+					log.Println("Kafka consumer context canceled, exiting loop")
+					return
+				}
 				log.Printf("Kafka consume error: %v", err)
 				continue
 			}
@@ -84,5 +83,8 @@ func RunKafkaConsumer(consumer kafka.Consumer, handler func(key, value []byte)) 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	<-sigs
-	consumer.Close()
+
+	log.Println("Shutdown signal received, closing consumer...")
+	cancel()         // 여기서 cancel 실행
+	consumer.Close() // kafka 클라이언트 종료
 }

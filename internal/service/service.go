@@ -16,7 +16,7 @@ import (
 )
 
 type ProductService struct {
-	pb.ProductServiceServer
+	pb.UnimplementedProductServiceServer
 	pg    postgres.DBEngine
 	kafka kafka.Engine
 }
@@ -79,9 +79,20 @@ func (s *ProductService) GetProducts(ctx context.Context, in *pb.GetProductsRequ
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get products: %v", err)
 	}
+
 	resp := make([]*pb.Product, 0, len(products))
 	for _, product := range products {
-		cats := parseCategories(product.Categories)
+		categories, err := qtx.GetCategoriesByProductID(ctx, product.ID)
+		if err != nil {
+			continue
+		}
+		cats := make([]*pb.Category, 0, len(categories))
+		for _, cat := range categories {
+			cats = append(cats, &pb.Category{
+				Id:   int64(cat.ID),
+				Name: cat.Name,
+			})
+		}
 		resp = append(resp, &pb.Product{
 			Id:         uuidToString(product.ID),
 			Name:       product.Name,
@@ -187,14 +198,20 @@ func (s *ProductService) PostProducts(ctx context.Context, in *pb.PostProductReq
 	return &pb.PostProductResponse{Message: "post product successful"}, nil
 }
 
-func (s *ProductService) DecrementStockQuantities(ctx context.Context, idsByte []byte) error {
+type OptionRaw struct {
+	OptionID   int32
+	OptionName string
+	ValueID    int32
+	Value      string
+}
 
+func (s *ProductService) GetProductOptions(ctx context.Context, in *pb.GetProductOptionsRequest) (*pb.GetProductOptionsResponse, error) {
 	db := s.pg.GetDB()
 	querier := postgresql.New(db)
 
 	tx, err := db.Begin()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	qtx := querier.WithTx(tx)
 	defer func() {
@@ -204,13 +221,66 @@ func (s *ProductService) DecrementStockQuantities(ctx context.Context, idsByte [
 			tx.Commit()
 		}
 	}()
-	var ids []uuid.UUID
-	if err := json.Unmarshal(idsByte, &ids); err != nil {
-		return status.Errorf(codes.InvalidArgument, "failed to parse ids: %v", err)
-	}
-	err = qtx.DecrementStockQuantities(ctx, ids)
+
+	productID := uuid.MustParse(in.Id)
+
+	hasCustom, err := qtx.HasProductCustomOptionValues(ctx, productID)
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to decrement stock quantities: %v", err)
+		return nil, err
 	}
-	return nil
+
+	var rows []OptionRaw
+
+	if hasCustom {
+		raw, err := qtx.GetProductCustomOptionValues(ctx, productID)
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range raw {
+			rows = append(rows, OptionRaw{
+				OptionID:   r.OptionID,
+				OptionName: r.OptionName,
+				ValueID:    r.ValueID,
+				Value:      r.Value,
+			})
+		}
+	} else {
+		raw, err := qtx.GetProductDefaultOptionValues(ctx, productID)
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range raw {
+			rows = append(rows, OptionRaw{
+				OptionID:   r.OptionID,
+				OptionName: r.OptionName,
+				ValueID:    r.ValueID,
+				Value:      r.Value,
+			})
+		}
+	}
+
+	grouped := map[int32]*pb.ProductOption{} // option_id → ProductOption
+
+	for _, row := range rows {
+		if _, ok := grouped[row.OptionID]; !ok {
+			grouped[row.OptionID] = &pb.ProductOption{
+				OptionId:   row.OptionID,
+				OptionName: row.OptionName,
+				Values:     []*pb.OptionValue{},
+			}
+		}
+		grouped[row.OptionID].Values = append(grouped[row.OptionID].Values, &pb.OptionValue{
+			ValueId: row.ValueID,
+			Value:   row.Value,
+		})
+	}
+
+	response := &pb.GetProductOptionsResponse{
+		ProductId: productID.String(),
+		Options:   []*pb.ProductOption{},
+	}
+	for _, option := range grouped {
+		response.Options = append(response.Options, option)
+	}
+	return response, nil
 }

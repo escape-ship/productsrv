@@ -10,43 +10,23 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
-const decrementStockQuantities = `-- name: DecrementStockQuantities :exec
-UPDATE products.inventories
-SET stock_quantity = stock_quantity - 1
-WHERE id = ANY($1::uuid[])
+const getCategories = `-- name: GetCategories :many
+SELECT id, name
+FROM products.categories
 `
 
-func (q *Queries) DecrementStockQuantities(ctx context.Context, dollar_1 []uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, decrementStockQuantities, pq.Array(dollar_1))
-	return err
-}
-
-const getCategoriesByProductID = `-- name: GetCategoriesByProductID :many
-SELECT c.id, c.name, c.parent_id
-FROM products.categories c
-JOIN products.products_categories_relations pcr ON c.id = pcr.category_id
-WHERE pcr.product_id = $1
-`
-
-type GetCategoriesByProductIDRow struct {
-	ID       uuid.UUID     `json:"id"`
-	Name     string        `json:"name"`
-	ParentID uuid.NullUUID `json:"parent_id"`
-}
-
-func (q *Queries) GetCategoriesByProductID(ctx context.Context, productID uuid.UUID) ([]GetCategoriesByProductIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCategoriesByProductID, productID)
+func (q *Queries) GetCategories(ctx context.Context) ([]ProductsCategory, error) {
+	rows, err := q.db.QueryContext(ctx, getCategories)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetCategoriesByProductIDRow
+	var items []ProductsCategory
 	for rows.Next() {
-		var i GetCategoriesByProductIDRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.ParentID); err != nil {
+		var i ProductsCategory
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -60,26 +40,123 @@ func (q *Queries) GetCategoriesByProductID(ctx context.Context, productID uuid.U
 	return items, nil
 }
 
-const getInventoriesByProductID = `-- name: GetInventoriesByProductID :many
-SELECT id, product_id, product_option_id, stock_quantity
-FROM products.inventories
-WHERE product_id = $1
+const getCategoriesByProductID = `-- name: GetCategoriesByProductID :many
+SELECT c.id, c.name
+FROM products.categories c
+JOIN products.product_categories pc ON c.id = pc.category_id
+WHERE pc.product_id = $1
 `
 
-func (q *Queries) GetInventoriesByProductID(ctx context.Context, productID uuid.UUID) ([]ProductsInventory, error) {
-	rows, err := q.db.QueryContext(ctx, getInventoriesByProductID, productID)
+func (q *Queries) GetCategoriesByProductID(ctx context.Context, productID uuid.UUID) ([]ProductsCategory, error) {
+	rows, err := q.db.QueryContext(ctx, getCategoriesByProductID, productID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ProductsInventory
+	var items []ProductsCategory
 	for rows.Next() {
-		var i ProductsInventory
+		var i ProductsCategory
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCategoryByID = `-- name: GetCategoryByID :one
+SELECT id, name
+FROM products.categories
+WHERE id = $1
+`
+
+func (q *Queries) GetCategoryByID(ctx context.Context, id int32) (ProductsCategory, error) {
+	row := q.db.QueryRowContext(ctx, getCategoryByID, id)
+	var i ProductsCategory
+	err := row.Scan(&i.ID, &i.Name)
+	return i, err
+}
+
+const getProductByID = `-- name: GetProductByID :one
+SELECT id, name, price, image_url, created_at, updated_at
+FROM products.product
+WHERE id = $1
+`
+
+func (q *Queries) GetProductByID(ctx context.Context, id uuid.UUID) (ProductsProduct, error) {
+	row := q.db.QueryRowContext(ctx, getProductByID, id)
+	var i ProductsProduct
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Price,
+		&i.ImageUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getProductByName = `-- name: GetProductByName :one
+SELECT id, name, price, image_url, created_at, updated_at
+FROM products.product
+WHERE name = $1
+`
+
+func (q *Queries) GetProductByName(ctx context.Context, name string) (ProductsProduct, error) {
+	row := q.db.QueryRowContext(ctx, getProductByName, name)
+	var i ProductsProduct
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Price,
+		&i.ImageUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getProductCustomOptionValues = `-- name: GetProductCustomOptionValues :many
+SELECT
+  o.id AS option_id,
+  o.name AS option_name,
+  ov.id AS value_id,
+  ov.value AS value
+FROM products.product_option_values pov
+JOIN products.option_values ov ON pov.option_value_id = ov.id
+JOIN products.options o ON pov.option_id = o.id
+WHERE pov.product_id = $1
+ORDER BY o.id, ov.id
+`
+
+type GetProductCustomOptionValuesRow struct {
+	OptionID   int32  `json:"option_id"`
+	OptionName string `json:"option_name"`
+	ValueID    int32  `json:"value_id"`
+	Value      string `json:"value"`
+}
+
+func (q *Queries) GetProductCustomOptionValues(ctx context.Context, productID uuid.UUID) ([]GetProductCustomOptionValuesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getProductCustomOptionValues, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProductCustomOptionValuesRow
+	for rows.Next() {
+		var i GetProductCustomOptionValuesRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.ProductID,
-			&i.ProductOptionID,
-			&i.StockQuantity,
+			&i.OptionID,
+			&i.OptionName,
+			&i.ValueID,
+			&i.Value,
 		); err != nil {
 			return nil, err
 		}
@@ -94,133 +171,69 @@ func (q *Queries) GetInventoriesByProductID(ctx context.Context, productID uuid.
 	return items, nil
 }
 
-const getInventoryByProductID = `-- name: GetInventoryByProductID :one
-SELECT product_id, stock_quantity
-FROM products.inventories
-WHERE product_id = $1
+const getProductDefaultOptionValues = `-- name: GetProductDefaultOptionValues :many
+SELECT
+  o.id AS option_id,
+  o.name AS option_name,
+  ov.id AS value_id,
+  ov.value AS value
+FROM products.product_categories pc
+JOIN products.category_options co ON pc.category_id = co.category_id
+JOIN products.options o ON co.option_id = o.id
+JOIN products.option_values ov ON ov.option_id = o.id
+WHERE pc.product_id = $1
+ORDER BY o.id, ov.id
 `
 
-type GetInventoryByProductIDRow struct {
-	ProductID     uuid.UUID `json:"product_id"`
-	StockQuantity int32     `json:"stock_quantity"`
+type GetProductDefaultOptionValuesRow struct {
+	OptionID   int32  `json:"option_id"`
+	OptionName string `json:"option_name"`
+	ValueID    int32  `json:"value_id"`
+	Value      string `json:"value"`
 }
 
-func (q *Queries) GetInventoryByProductID(ctx context.Context, productID uuid.UUID) (GetInventoryByProductIDRow, error) {
-	row := q.db.QueryRowContext(ctx, getInventoryByProductID, productID)
-	var i GetInventoryByProductIDRow
-	err := row.Scan(&i.ProductID, &i.StockQuantity)
-	return i, err
-}
-
-const getProductByID = `-- name: GetProductByID :one
-SELECT p.id, p.name, p.price, p.image_url, p.created_at, p.updated_at,
-       COALESCE(json_agg(DISTINCT c.name) FILTER (WHERE c.id IS NOT NULL), '[]') AS categories,
-       COALESCE(SUM(i.stock_quantity), 0) AS inventory
-FROM products.product p
-LEFT JOIN products.products_categories_relations pcr ON p.id = pcr.product_id
-LEFT JOIN products.categories c ON pcr.category_id = c.id
-LEFT JOIN products.inventories i ON p.id = i.product_id
-WHERE p.id = $1
-GROUP BY p.id
-`
-
-type GetProductByIDRow struct {
-	ID         uuid.UUID      `json:"id"`
-	Name       string         `json:"name"`
-	Price      int64          `json:"price"`
-	ImageUrl   sql.NullString `json:"image_url"`
-	CreatedAt  sql.NullTime   `json:"created_at"`
-	UpdatedAt  sql.NullTime   `json:"updated_at"`
-	Categories interface{}    `json:"categories"`
-	Inventory  interface{}    `json:"inventory"`
-}
-
-func (q *Queries) GetProductByID(ctx context.Context, id uuid.UUID) (GetProductByIDRow, error) {
-	row := q.db.QueryRowContext(ctx, getProductByID, id)
-	var i GetProductByIDRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Price,
-		&i.ImageUrl,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Categories,
-		&i.Inventory,
-	)
-	return i, err
-}
-
-const getProductByName = `-- name: GetProductByName :one
-SELECT p.id, p.name, p.price, p.image_url, p.created_at, p.updated_at,
-       COALESCE(json_agg(DISTINCT c.name) FILTER (WHERE c.id IS NOT NULL), '[]') AS categories,
-       COALESCE(SUM(i.stock_quantity), 0) AS inventory
-FROM products.product p
-LEFT JOIN products.products_categories_relations pcr ON p.id = pcr.product_id
-LEFT JOIN products.categories c ON pcr.category_id = c.id
-LEFT JOIN products.inventories i ON p.id = i.product_id
-WHERE p.name = $1
-GROUP BY p.id
-`
-
-type GetProductByNameRow struct {
-	ID         uuid.UUID      `json:"id"`
-	Name       string         `json:"name"`
-	Price      int64          `json:"price"`
-	ImageUrl   sql.NullString `json:"image_url"`
-	CreatedAt  sql.NullTime   `json:"created_at"`
-	UpdatedAt  sql.NullTime   `json:"updated_at"`
-	Categories interface{}    `json:"categories"`
-	Inventory  interface{}    `json:"inventory"`
-}
-
-func (q *Queries) GetProductByName(ctx context.Context, name string) (GetProductByNameRow, error) {
-	row := q.db.QueryRowContext(ctx, getProductByName, name)
-	var i GetProductByNameRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Price,
-		&i.ImageUrl,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Categories,
-		&i.Inventory,
-	)
-	return i, err
+func (q *Queries) GetProductDefaultOptionValues(ctx context.Context, productID uuid.UUID) ([]GetProductDefaultOptionValuesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getProductDefaultOptionValues, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProductDefaultOptionValuesRow
+	for rows.Next() {
+		var i GetProductDefaultOptionValuesRow
+		if err := rows.Scan(
+			&i.OptionID,
+			&i.OptionName,
+			&i.ValueID,
+			&i.Value,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getProducts = `-- name: GetProducts :many
-SELECT p.id, p.name, p.price, p.image_url, p.created_at, p.updated_at,
-       COALESCE(json_agg(DISTINCT c.name) FILTER (WHERE c.id IS NOT NULL), '[]') AS categories,
-       COALESCE(SUM(i.stock_quantity), 0) AS inventory
-FROM products.product p
-LEFT JOIN products.products_categories_relations pcr ON p.id = pcr.product_id
-LEFT JOIN products.categories c ON pcr.category_id = c.id
-LEFT JOIN products.inventories i ON p.id = i.product_id
-GROUP BY p.id
+SELECT id, name, price, image_url, created_at, updated_at
+FROM products.product
 `
 
-type GetProductsRow struct {
-	ID         uuid.UUID      `json:"id"`
-	Name       string         `json:"name"`
-	Price      int64          `json:"price"`
-	ImageUrl   sql.NullString `json:"image_url"`
-	CreatedAt  sql.NullTime   `json:"created_at"`
-	UpdatedAt  sql.NullTime   `json:"updated_at"`
-	Categories interface{}    `json:"categories"`
-	Inventory  interface{}    `json:"inventory"`
-}
-
-func (q *Queries) GetProducts(ctx context.Context) ([]GetProductsRow, error) {
+func (q *Queries) GetProducts(ctx context.Context) ([]ProductsProduct, error) {
 	rows, err := q.db.QueryContext(ctx, getProducts)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetProductsRow
+	var items []ProductsProduct
 	for rows.Next() {
-		var i GetProductsRow
+		var i ProductsProduct
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -228,8 +241,6 @@ func (q *Queries) GetProducts(ctx context.Context) ([]GetProductsRow, error) {
 			&i.ImageUrl,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Categories,
-			&i.Inventory,
 		); err != nil {
 			return nil, err
 		}
@@ -242,6 +253,21 @@ func (q *Queries) GetProducts(ctx context.Context) ([]GetProductsRow, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const hasProductCustomOptionValues = `-- name: HasProductCustomOptionValues :one
+SELECT EXISTS (
+  SELECT 1
+  FROM products.product_option_values
+  WHERE product_id = $1
+) AS has_custom
+`
+
+func (q *Queries) HasProductCustomOptionValues(ctx context.Context, productID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, hasProductCustomOptionValues, productID)
+	var has_custom bool
+	err := row.Scan(&has_custom)
+	return has_custom, err
 }
 
 const postProducts = `-- name: PostProducts :exec

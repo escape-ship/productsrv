@@ -11,16 +11,24 @@ import (
 )
 
 type ProductsCategory struct {
-	ID       uuid.UUID     `json:"id"`
-	ParentID uuid.NullUUID `json:"parent_id"`
-	Name     string        `json:"name"`
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
 }
 
-type ProductsInventory struct {
-	ID              uuid.UUID `json:"id"`
-	ProductID       uuid.UUID `json:"product_id"`
-	ProductOptionID uuid.UUID `json:"product_option_id"`
-	StockQuantity   int32     `json:"stock_quantity"`
+type ProductsCategoryOption struct {
+	CategoryID int32 `json:"category_id"`
+	OptionID   int32 `json:"option_id"`
+}
+
+type ProductsOption struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
+}
+
+type ProductsOptionValue struct {
+	ID       int32  `json:"id"`
+	OptionID int32  `json:"option_id"`
+	Value    string `json:"value"`
 }
 
 type ProductsProduct struct {
@@ -32,15 +40,13 @@ type ProductsProduct struct {
 	UpdatedAt sql.NullTime   `json:"updated_at"`
 }
 
-type ProductsProductOption struct {
-	ID        uuid.UUID `json:"id"`
-	ProductID uuid.UUID `json:"product_id"`
-	Option    string    `json:"option"`
-	Value     string    `json:"value"`
+type ProductsProductCategory struct {
+	ProductID  uuid.UUID `json:"product_id"`
+	CategoryID int32     `json:"category_id"`
 }
 
-type ProductsProductsCategoriesRelation struct {
-	ID         uuid.UUID `json:"id"`
-	ProductID  uuid.UUID `json:"product_id"`
-	CategoryID uuid.UUID `json:"category_id"`
+type ProductsProductOptionValue struct {
+	ProductID     uuid.UUID `json:"product_id"`
+	OptionValueID int32     `json:"option_value_id"`
+	OptionID      int32     `json:"option_id"`
 }
