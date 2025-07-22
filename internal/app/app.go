@@ -48,7 +48,7 @@ func (a *App) Run() {
 	pb.RegisterProductServiceServer(a.grpcServer, service.NewProductService(a.pg, a.KafkaEngine))
 
 	reflection.Register(a.grpcServer)
-	
+
 	// Kafka 메시지 핸들러
 	handler := func(key, value []byte) {
 		log.Printf("Kafka message received: key=%s, value=%s", string(key), string(value))
@@ -59,14 +59,14 @@ func (a *App) Run() {
 		default:
 		}
 	}
-	
+
 	// Kafka consumer를 별도 고루틴에서 실행
 	go a.runKafkaConsumer(handler)
 
 	// gRPC 서버를 별도 고루틴에서 실행
 	serverErrCh := make(chan error, 1)
 	go func() {
-		log.Println("gRPC server listening on :9091")
+		log.Println("gRPC server listening on :8082")
 		if err := a.grpcServer.Serve(a.Listener); err != nil {
 			serverErrCh <- err
 		}

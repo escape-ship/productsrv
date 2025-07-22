@@ -19,7 +19,7 @@ func main() {
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	lis, err := net.Listen("tcp", ":9091")
+	lis, err := net.Listen("tcp", ":8082")
 	if err != nil {
 		logger.Error(err.Error())
 		return
@@ -37,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	brokers := []string{"localhost:9092"}
+	brokers := []string{"kafka:9092"}
 	topic := "payments"
 	groupID := "order-group"
 	engine := kafka.NewEngine(brokers, topic, groupID)
