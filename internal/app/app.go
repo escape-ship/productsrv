@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	pb "github.com/escape-ship/productsrv/proto/gen"
+	pb "github.com/escape-ship/protos/gen"
 )
 
 type App struct {

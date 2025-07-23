@@ -9,7 +9,7 @@ import (
 	"github.com/escape-ship/productsrv/internal/infra/sqlc/postgresql"
 	"github.com/escape-ship/productsrv/pkg/kafka"
 	"github.com/escape-ship/productsrv/pkg/postgres"
-	pb "github.com/escape-ship/productsrv/proto/gen"
+	pb "github.com/escape-ship/protos/gen"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -157,7 +157,7 @@ func (s *ProductService) GetProductByID(ctx context.Context, in *pb.GetProductBy
 	return &pb.GetProductByIDResponse{Product: resp}, nil
 }
 
-func (s *ProductService) PostProducts(ctx context.Context, in *pb.PostProductRequest) (*pb.PostProductResponse, error) {
+func (s *ProductService) PostProducts(ctx context.Context, in *pb.PostProductsRequest) (*pb.PostProductsResponse, error) {
 
 	db := s.pg.GetDB()
 	querier := postgresql.New(db)
@@ -195,7 +195,7 @@ func (s *ProductService) PostProducts(ctx context.Context, in *pb.PostProductReq
 		return nil, status.Errorf(codes.Internal, "failed to register product: %v", err)
 	}
 	// 카테고리 관계 테이블에 추가 필요 (구현 필요시 추가)
-	return &pb.PostProductResponse{Message: "post product successful"}, nil
+	return &pb.PostProductsResponse{Message: "post product successful"}, nil
 }
 
 type OptionRaw struct {
