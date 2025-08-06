@@ -1,61 +1,22 @@
 BEGIN;
 
+-- 확장 기능: UUID 생성 함수
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- 스키마 생성
 CREATE SCHEMA IF NOT EXISTS products;
 
-CREATE TABLE IF NOT EXISTS products.product (
-    id UUID PRIMARY KEY,
-    name TEXT NOT NULL,
-    price BIGINT NOT NULL,
+-- 상품 테이블
+CREATE TABLE IF NOT EXISTS products.products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,                            -- 상품명
+    description TEXT,                              -- 상세 설명
+    base_price BIGINT NOT NULL,                   -- 기본 가격
     image_url TEXT,
+    category TEXT,
+    options JSONB,                                 -- 옵션 구조(JSON)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS products.categories (
-    id    INT PRIMARY KEY,
-    name  VARCHAR(50) NOT NULL UNIQUE
-);
-
-CREATE TABLE IF NOT EXISTS products.product_categories (
-  product_id UUID,
-  category_id INT,
-  PRIMARY KEY (product_id, category_id),
-  FOREIGN KEY (product_id)  REFERENCES products.product(id),
-  FOREIGN KEY (category_id) REFERENCES products.categories(id)
-);
-
-CREATE TABLE IF NOT EXISTS products.options(
-    id    INT PRIMARY KEY,
-    name  VARCHAR(50) NOT NULL UNIQUE
-);
-
-CREATE TABLE IF NOT EXISTS products.option_values (
-  id        INT PRIMARY KEY,
-  option_id INT NOT NULL,
-  value     VARCHAR(50) NOT NULL,
-  UNIQUE (option_id, value),
-  FOREIGN KEY (option_id) REFERENCES products.options(id)
-);
-
--- 카테고리별 허용 옵션 매핑
-CREATE TABLE IF NOT EXISTS products.category_options (
-  category_id INT NOT NULL,
-  option_id   INT NOT NULL,
-  PRIMARY KEY (category_id, option_id),
-  FOREIGN KEY (category_id) REFERENCES products.categories(id),
-  FOREIGN KEY (option_id)   REFERENCES products.options(id)
-);
-
-
--- M:N 매핑: 상품 ↔ 옵션 값
-CREATE TABLE IF NOT EXISTS products.product_option_values (
-  product_id      UUID  NOT NULL,
-  option_value_id INT NOT NULL,
-  option_id INT NOT NULL,
-  PRIMARY KEY (product_id, option_value_id),
-  FOREIGN KEY (product_id)      REFERENCES products.product(id),
-  FOREIGN KEY (option_value_id) REFERENCES products.option_values(id),
-  FOREIGN KEY (option_id) REFERENCES products.options(id)
 );
 
 COMMIT;

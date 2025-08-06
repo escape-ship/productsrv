@@ -8,45 +8,17 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
-type ProductsCategory struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
-}
-
-type ProductsCategoryOption struct {
-	CategoryID int32 `json:"category_id"`
-	OptionID   int32 `json:"option_id"`
-}
-
-type ProductsOption struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
-}
-
-type ProductsOptionValue struct {
-	ID       int32  `json:"id"`
-	OptionID int32  `json:"option_id"`
-	Value    string `json:"value"`
-}
-
 type ProductsProduct struct {
-	ID        uuid.UUID      `json:"id"`
-	Name      string         `json:"name"`
-	Price     int64          `json:"price"`
-	ImageUrl  sql.NullString `json:"image_url"`
-	CreatedAt sql.NullTime   `json:"created_at"`
-	UpdatedAt sql.NullTime   `json:"updated_at"`
-}
-
-type ProductsProductCategory struct {
-	ProductID  uuid.UUID `json:"product_id"`
-	CategoryID int32     `json:"category_id"`
-}
-
-type ProductsProductOptionValue struct {
-	ProductID     uuid.UUID `json:"product_id"`
-	OptionValueID int32     `json:"option_value_id"`
-	OptionID      int32     `json:"option_id"`
+	ID          uuid.UUID             `json:"id"`
+	Name        string                `json:"name"`
+	Description sql.NullString        `json:"description"`
+	BasePrice   int64                 `json:"base_price"`
+	ImageUrl    sql.NullString        `json:"image_url"`
+	Category    sql.NullString        `json:"category"`
+	Options     pqtype.NullRawMessage `json:"options"`
+	CreatedAt   sql.NullTime          `json:"created_at"`
+	UpdatedAt   sql.NullTime          `json:"updated_at"`
 }
